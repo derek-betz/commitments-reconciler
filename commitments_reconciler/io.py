@@ -32,39 +32,47 @@ def read_commitments_workbook(path: Path) -> List[CommitmentRecord]:
     """Load the synthetic commitments workbook into dataclasses."""
 
     workbook = load_workbook(path)
-    if not workbook.sheetnames:
-        return []
-    sheet = workbook[workbook.sheetnames[0]]
-    rows = list(sheet.iter_rows(values_only=True))
-    if not rows:
-        return []
-
-    header = _normalise_header(rows[0])
-    required = {
-        "commitment id": "identifier",
-        "vendor": "vendor",
-        "phase": "phase",
-        "amount": "amount",
-    }
-    missing = [key for key in required if key not in header]
-    if missing:
-        raise KeyError(f"Workbook is missing required columns: {', '.join(sorted(missing))}")
-
-    records: List[CommitmentRecord] = []
-    for raw_row in rows[1:]:
-        if not any(raw_row):
-            continue
-        identifier = str(raw_row[header["commitment id"]]).strip()
-        vendor = str(raw_row[header["vendor"]]).strip()
-        phase = str(raw_row[header["phase"]]).strip()
-        amount_raw = raw_row[header["amount"]]
+    try:
+        if not workbook.sheetnames:
+            return []
+        sheet = workbook[workbook.sheetnames[0]]
+        
+        row_iterator = sheet.iter_rows(values_only=True)
+        
+        # Read and process the header row
         try:
-            amount = float(amount_raw)
-        except (TypeError, ValueError):
-            amount = 0.0
-        records.append(CommitmentRecord(identifier, vendor, phase, amount))
-    workbook.close()
-    return records
+            header_row = next(row_iterator)
+        except StopIteration:
+            return []
+        
+        header = _normalise_header(header_row)
+        required = {
+            "commitment id": "identifier",
+            "vendor": "vendor",
+            "phase": "phase",
+            "amount": "amount",
+        }
+        missing = [key for key in required if key not in header]
+        if missing:
+            raise KeyError(f"Workbook is missing required columns: {', '.join(sorted(missing))}")
+
+        # Process data rows iteratively
+        records: List[CommitmentRecord] = []
+        for raw_row in row_iterator:
+            if not any(raw_row):
+                continue
+            identifier = str(raw_row[header["commitment id"]]).strip()
+            vendor = str(raw_row[header["vendor"]]).strip()
+            phase = str(raw_row[header["phase"]]).strip()
+            amount_raw = raw_row[header["amount"]]
+            try:
+                amount = float(amount_raw)
+            except (TypeError, ValueError):
+                amount = 0.0
+            records.append(CommitmentRecord(identifier, vendor, phase, amount))
+        return records
+    finally:
+        workbook.close()
 
 
 def read_environment_document(path: Path) -> Dict[str, str]:
