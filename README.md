@@ -9,7 +9,7 @@ functions.
 ## Requirements
 
 ### Software Requirements
-- **Python**: 3.9 or higher (recommended 3.11+)
+- **Python**: 3.12 or higher
 - **pip**: Python package installer (typically included with Python)
 
 ### Python Package Dependencies

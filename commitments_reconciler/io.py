@@ -1,9 +1,9 @@
 """Helpers for parsing synthetic commitments data used in tests."""
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List
 
 from docx import Document
 from openpyxl import load_workbook
@@ -19,8 +19,8 @@ class CommitmentRecord:
     amount: float
 
 
-def _normalise_header(header: Iterable[object]) -> Dict[str, int]:
-    mapping: Dict[str, int] = {}
+def _normalise_header(header: Iterable[object]) -> dict[str, int]:
+    mapping: dict[str, int] = {}
     for index, value in enumerate(header):
         key = str(value or "").strip().lower()
         if key:
@@ -28,50 +28,58 @@ def _normalise_header(header: Iterable[object]) -> Dict[str, int]:
     return mapping
 
 
-def read_commitments_workbook(path: Path) -> List[CommitmentRecord]:
+def read_commitments_workbook(path: Path) -> list[CommitmentRecord]:
     """Load the synthetic commitments workbook into dataclasses."""
 
     workbook = load_workbook(path)
-    if not workbook.sheetnames:
-        return []
-    sheet = workbook[workbook.sheetnames[0]]
-    rows = list(sheet.iter_rows(values_only=True))
-    if not rows:
-        return []
+    try:
+        if not workbook.sheetnames:
+            return []
+        sheet = workbook[workbook.sheetnames[0]]
 
-    header = _normalise_header(rows[0])
-    required = {
-        "commitment id": "identifier",
-        "vendor": "vendor",
-        "phase": "phase",
-        "amount": "amount",
-    }
-    missing = [key for key in required if key not in header]
-    if missing:
-        raise KeyError(f"Workbook is missing required columns: {', '.join(sorted(missing))}")
+        row_iterator = sheet.iter_rows(values_only=True)
 
-    records: List[CommitmentRecord] = []
-    for raw_row in rows[1:]:
-        if not any(raw_row):
-            continue
-        identifier = str(raw_row[header["commitment id"]]).strip()
-        vendor = str(raw_row[header["vendor"]]).strip()
-        phase = str(raw_row[header["phase"]]).strip()
-        amount_raw = raw_row[header["amount"]]
+        # Read and process the header row
         try:
-            amount = float(amount_raw)
-        except (TypeError, ValueError):
-            amount = 0.0
-        records.append(CommitmentRecord(identifier, vendor, phase, amount))
-    workbook.close()
-    return records
+            header_row = next(row_iterator)
+        except StopIteration:
+            return []
+
+        header = _normalise_header(header_row)
+        required = {
+            "commitment id": "identifier",
+            "vendor": "vendor",
+            "phase": "phase",
+            "amount": "amount",
+        }
+        missing = [key for key in required if key not in header]
+        if missing:
+            raise KeyError(f"Workbook is missing required columns: {', '.join(sorted(missing))}")
+
+        # Process data rows iteratively
+        records: list[CommitmentRecord] = []
+        for raw_row in row_iterator:
+            if not any(raw_row):
+                continue
+            identifier = str(raw_row[header["commitment id"]]).strip()
+            vendor = str(raw_row[header["vendor"]]).strip()
+            phase = str(raw_row[header["phase"]]).strip()
+            amount_raw = raw_row[header["amount"]]
+            try:
+                amount = float(amount_raw)
+            except (TypeError, ValueError):
+                amount = 0.0
+            records.append(CommitmentRecord(identifier, vendor, phase, amount))
+        return records
+    finally:
+        workbook.close()
 
 
-def read_environment_document(path: Path) -> Dict[str, str]:
+def read_environment_document(path: Path) -> dict[str, str]:
     """Parse key-value metadata out of the generated environment document."""
 
     document = Document(path)
-    details: Dict[str, str] = {}
+    details: dict[str, str] = {}
     for paragraph in document.paragraphs:
         text = paragraph.text.strip()
         if not text or ":" not in text:
@@ -81,10 +89,10 @@ def read_environment_document(path: Path) -> Dict[str, str]:
     return details
 
 
-def summarise_commitments(records: Iterable[CommitmentRecord]) -> Dict[str, object]:
+def summarise_commitments(records: Iterable[CommitmentRecord]) -> dict[str, object]:
     """Compute aggregate totals grouped by vendor."""
 
-    totals_by_vendor: Dict[str, float] = {}
+    totals_by_vendor: dict[str, float] = {}
     total_amount = 0.0
     for record in records:
         totals_by_vendor.setdefault(record.vendor, 0.0)
