@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import stat
 import sys
 import tempfile
 import zipfile
@@ -63,6 +64,10 @@ def _safe_extract(zip_path: Path, destination: Path) -> None:
             if member_path.is_absolute() or ".." in member_path.parts:
                 raise ValueError(f"Unsafe path in zip file: {member.filename}")
 
+            mode = member.external_attr >> 16
+            if stat.S_IFMT(mode) == stat.S_IFLNK:
+                raise ValueError(f"Symlinks are not allowed: {member.filename}")
+
             target_path = destination / member_path
             if member.is_dir():
                 target_path.mkdir(parents=True, exist_ok=True)
@@ -92,7 +97,9 @@ def main() -> int:
                 print(f"BidTabsData version {version} already present at {out_dir}")
                 return 0
 
-        with tempfile.TemporaryDirectory(prefix="bidtabsdata_") as tmp:
+        out_dir.parent.mkdir(parents=True, exist_ok=True)
+
+        with tempfile.TemporaryDirectory(prefix="bidtabsdata_", dir=out_dir.parent) as tmp:
             tmp_path = Path(tmp)
             download_target = tmp_path / "BidTabsData.zip"
 
@@ -110,10 +117,21 @@ def main() -> int:
             ready_dir = tmp_path / "ready"
             shutil.copytree(payload_root, ready_dir)
 
-            if out_dir.exists():
-                shutil.rmtree(out_dir)
-            out_dir.parent.mkdir(parents=True, exist_ok=True)
-            os.replace(str(ready_dir), str(out_dir))
+            backup_dir: Path | None = None
+            try:
+                if out_dir.exists():
+                    backup_dir = out_dir.parent / f"{out_dir.name}.bak"
+                    if backup_dir.exists():
+                        shutil.rmtree(backup_dir)
+                    os.replace(str(out_dir), str(backup_dir))
+                os.replace(str(ready_dir), str(out_dir))
+            except Exception:
+                if backup_dir and backup_dir.exists() and not out_dir.exists():
+                    os.replace(str(backup_dir), str(out_dir))
+                raise
+            else:
+                if backup_dir and backup_dir.exists():
+                    shutil.rmtree(backup_dir)
 
             marker_file.write_text(version, encoding="utf-8")
 
