@@ -1,0 +1,20 @@
+name: BidTabsData sample fetch
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  fetch-bidtabsdata:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch BidTabsData sample (placeholder version)
+        env:
+          BIDTABSDATA_VERSION: v0.0.0 # replace with a real release tag when available
+          BIDTABSDATA_REPO: derek-betz/BidTabsData
+        run: python scripts/fetch_bidtabsdata.py
+        continue-on-error: true
