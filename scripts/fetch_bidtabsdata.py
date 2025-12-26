@@ -93,7 +93,11 @@ def main() -> int:
         marker_file = out_dir / ".bidtabsdata_version"
 
         if out_dir.exists() and marker_file.exists():
-            if marker_file.read_text(encoding="utf-8").strip() == version:
+            try:
+                current_version = marker_file.read_text(encoding="utf-8").strip()
+            except OSError:
+                current_version = None
+            if current_version == version:
                 print(f"BidTabsData version {version} already present at {out_dir}")
                 return 0
 
@@ -116,6 +120,8 @@ def main() -> int:
             payload_root = _locate_payload_root(extracted_dir)
             ready_dir = tmp_path / "ready"
             shutil.copytree(payload_root, ready_dir)
+            ready_marker = ready_dir / ".bidtabsdata_version"
+            ready_marker.write_text(version, encoding="utf-8")
 
             backup_dir: Path | None = None
             try:
@@ -125,7 +131,6 @@ def main() -> int:
                         shutil.rmtree(backup_dir)
                     os.replace(str(out_dir), str(backup_dir))
                 os.replace(str(ready_dir), str(out_dir))
-                marker_file.write_text(version, encoding="utf-8")
             except Exception:
                 if backup_dir and backup_dir.exists():
                     if out_dir.exists():
