@@ -66,7 +66,7 @@ def _safe_extract(zip_path: Path, destination: Path) -> None:
                 raise ValueError(f"Unsafe path in zip file: {member.filename}")
 
             mode = member.external_attr >> 16
-            if stat.S_IFMT(mode) == stat.S_IFLNK:
+            if mode and stat.S_IFMT(mode) == stat.S_IFLNK:
                 raise ValueError(f"Symlinks are not allowed: {member.filename}")
 
             target_path = destination / member_path
@@ -123,6 +123,8 @@ def main() -> int:
             shutil.copytree(payload_root, ready_dir)
             ready_marker = ready_dir / ".bidtabsdata_version"
             ready_marker.write_text(version, encoding="utf-8")
+            if ready_dir.stat().st_dev != out_dir.parent.stat().st_dev:
+                raise OSError("Staging directory must be on the same filesystem as the output directory.")
 
             backup_dir: Path | None = None
             try:
