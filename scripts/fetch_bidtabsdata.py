@@ -29,7 +29,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 def _require_version() -> str:
     version = os.getenv("BIDTABSDATA_VERSION")
     if not version:
-        sys.exit("BIDTABSDATA_VERSION environment variable is required.")
+        raise ValueError("BIDTABSDATA_VERSION environment variable is required.")
     return version
 
 
@@ -80,47 +80,49 @@ def _locate_payload_root(extracted: Path) -> Path:
     return extracted
 
 
-def main() -> None:
-    version = _require_version()
-    repo = os.getenv("BIDTABSDATA_REPO", DEFAULT_REPO)
-    out_dir = _resolve_out_dir()
-    marker_file = out_dir / ".bidtabsdata_version"
-
-    if out_dir.exists() and marker_file.exists():
-        if marker_file.read_text(encoding="utf-8").strip() == version:
-            print(f"BidTabsData version {version} already present at {out_dir}")
-            return
-
-    with tempfile.TemporaryDirectory(prefix="bidtabsdata_") as tmp:
-        tmp_path = Path(tmp)
-        download_target = tmp_path / "BidTabsData.zip"
-
-        urls = [
-            f"https://github.com/{repo}/releases/download/{version}/{ZIP_ASSET_NAME}",
-            f"https://github.com/{repo}/archive/refs/tags/{version}.zip",
-        ]
-        source_url = _download_zip(urls, download_target)
-
-        extracted_dir = tmp_path / "extracted"
-        extracted_dir.mkdir(parents=True, exist_ok=True)
-        _safe_extract(download_target, extracted_dir)
-
-        payload_root = _locate_payload_root(extracted_dir)
-        ready_dir = tmp_path / "ready"
-        shutil.copytree(payload_root, ready_dir)
-
-        if out_dir.exists():
-            shutil.rmtree(out_dir)
-        out_dir.parent.mkdir(parents=True, exist_ok=True)
-        os.replace(ready_dir, out_dir)
-
-        marker_file.write_text(version, encoding="utf-8")
-
-    print(f"Fetched BidTabsData {version} from {source_url} into {out_dir}")
-
-
-if __name__ == "__main__":
+def main() -> int:
     try:
-        main()
+        version = _require_version()
+        repo = os.getenv("BIDTABSDATA_REPO", DEFAULT_REPO)
+        out_dir = _resolve_out_dir()
+        marker_file = out_dir / ".bidtabsdata_version"
+
+        if out_dir.exists() and marker_file.exists():
+            if marker_file.read_text(encoding="utf-8").strip() == version:
+                print(f"BidTabsData version {version} already present at {out_dir}")
+                return 0
+
+        with tempfile.TemporaryDirectory(prefix="bidtabsdata_") as tmp:
+            tmp_path = Path(tmp)
+            download_target = tmp_path / "BidTabsData.zip"
+
+            urls = [
+                f"https://github.com/{repo}/releases/download/{version}/{ZIP_ASSET_NAME}",
+                f"https://github.com/{repo}/archive/refs/tags/{version}.zip",
+            ]
+            source_url = _download_zip(urls, download_target)
+
+            extracted_dir = tmp_path / "extracted"
+            extracted_dir.mkdir(parents=True, exist_ok=True)
+            _safe_extract(download_target, extracted_dir)
+
+            payload_root = _locate_payload_root(extracted_dir)
+            ready_dir = tmp_path / "ready"
+            shutil.copytree(payload_root, ready_dir)
+
+            if out_dir.exists():
+                shutil.rmtree(out_dir)
+            out_dir.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(str(ready_dir), str(out_dir))
+
+            marker_file.write_text(version, encoding="utf-8")
+
+        print(f"Fetched BidTabsData {version} from {source_url} into {out_dir}")
+        return 0
     except Exception as exc:  # pragma: no cover - script entry point
-        sys.exit(f"Failed to fetch BidTabsData: {exc}")
+        print(f"Failed to fetch BidTabsData: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":  # pragma: no cover - convenience entry point
+    raise SystemExit(main())
