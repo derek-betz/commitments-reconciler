@@ -16,6 +16,7 @@ import shutil
 import stat
 import sys
 import tempfile
+import traceback
 import zipfile
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -144,6 +145,7 @@ def main() -> int:
         print(f"Fetched BidTabsData {version} from {source_url} into {out_dir}")
         return 0
     except Exception as exc:  # pragma: no cover - script entry point
+        traceback.print_exc()
         print(f"Failed to fetch BidTabsData: {exc}", file=sys.stderr)
         return 1
 
