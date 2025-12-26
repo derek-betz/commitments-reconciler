@@ -110,7 +110,7 @@ def main() -> int:
             source_url = _download_zip(urls, download_target)
 
             extracted_dir = tmp_path / "extracted"
-            extracted_dir.mkdir(parents=True, exist_ok=True)
+            extracted_dir.mkdir()
             _safe_extract(download_target, extracted_dir)
 
             payload_root = _locate_payload_root(extracted_dir)
@@ -125,15 +125,16 @@ def main() -> int:
                         shutil.rmtree(backup_dir)
                     os.replace(str(out_dir), str(backup_dir))
                 os.replace(str(ready_dir), str(out_dir))
+                marker_file.write_text(version, encoding="utf-8")
             except Exception:
-                if backup_dir and backup_dir.exists() and not out_dir.exists():
+                if backup_dir and backup_dir.exists():
+                    if out_dir.exists():
+                        shutil.rmtree(out_dir)
                     os.replace(str(backup_dir), str(out_dir))
                 raise
             else:
                 if backup_dir and backup_dir.exists():
                     shutil.rmtree(backup_dir)
-
-            marker_file.write_text(version, encoding="utf-8")
 
         print(f"Fetched BidTabsData {version} from {source_url} into {out_dir}")
         return 0
