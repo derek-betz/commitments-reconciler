@@ -20,6 +20,14 @@ The following packages are required (typically installed at the repository root 
 
 These dependencies are shared with other tools in the repository and can be installed from the root-level requirements or via the individual project setup commands.
 
+## Windows bootstrap
+
+Install Python 3.12, test dependencies, and run the suite:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
+```
+
 ## Generating example documents
 
 Use the convenience script to create fresh examples inside
@@ -40,7 +48,7 @@ All tests use the runtime factories, so no additional preparation is required.
 Simply run the root test command:
 
 ```bash
-pytest -q
+python scripts/run_tests.py -q
 ```
 
 This collects the commitments tests alongside the rest of the suite.
