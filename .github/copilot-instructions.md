@@ -34,7 +34,7 @@ This repository contains integration tests and utilities for the commitments rec
 
 ### Installation
 
-Install the package in development mode with test dependencies:
+Install the package in development mode with test dependencies (from repository root):
 
 ```bash
 pip install -e .[test]
@@ -44,7 +44,7 @@ pip install -e .[test]
 
 This project uses Ruff for linting and code style enforcement. Configuration is in `pyproject.toml`.
 
-Run linting:
+Run linting from repository root:
 
 ```bash
 python -m ruff check .
@@ -57,7 +57,7 @@ Ruff is configured with:
 
 ### Testing
 
-Run tests using the convenience script (auto-installs dependencies if needed):
+Run tests using the convenience script (auto-installs dependencies if needed, from repository root):
 
 ```bash
 python scripts/run_tests.py -q
@@ -73,13 +73,13 @@ All tests use runtime factories to generate test documents, so no additional set
 
 ### Generating Examples
 
-Generate sample documents in the `examples/` directory:
+Generate sample documents in the `examples/` directory (run from repository root):
 
 ```bash
 python scripts/generate_examples.py
 ```
 
-This creates `sample_commitments.xlsx` and `sample_env_doc.docx` using the same factories as the tests.
+This creates `sample_commitments.xlsx` and `sample_env_doc.docx` in the `examples/` directory using the same factories as the tests.
 
 ## Code Style Guidelines
 
