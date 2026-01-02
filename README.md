@@ -42,6 +42,24 @@ the same factories that power the automated tests. Files in the examples
 directory are ignored by Git, ensuring that binaries never sneak back into the
 repository.
 
+## BidTabsData sample data
+
+Sample BidTabsData content is pulled from GitHub Releases. Set the release tag
+you need and run the fetch script:
+
+```bash
+export BIDTABSDATA_VERSION="v0.0.0"  # replace with the desired release tag
+python scripts/fetch_bidtabsdata.py
+```
+
+Optional environment variables:
+
+- `BIDTABSDATA_REPO` (default `derek-betz/BidTabsData`)
+- `BIDTABSDATA_OUT_DIR` (default `data-sample/BidTabsData`, relative to the repo root)
+
+The script downloads the release archive, unpacks it safely into the target
+directory, and writes a `.bidtabsdata_version` marker for idempotency.
+
 ## Testing
 
 All tests use the runtime factories, so no additional preparation is required.
