@@ -45,3 +45,4 @@ Thumbs.db
 examples/*
 !examples/.gitignore
 data-sample/BidTabsData/
+API_KEY/

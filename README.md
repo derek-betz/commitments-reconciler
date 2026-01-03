@@ -70,3 +70,8 @@ python scripts/run_tests.py -q
 ```
 
 This collects the commitments tests alongside the rest of the suite.
+
+## Secrets
+
+The API_KEY/ directory is intentionally excluded from version control. Create it locally on each machine to store secrets.
+
